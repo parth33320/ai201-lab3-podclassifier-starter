@@ -4,7 +4,13 @@ from pathlib import Path
 from groq import Groq
 from config import GROQ_API_KEY, LLM_MODEL, VALID_LABELS, DATA_PATH, TRAIN_FILE, LABELS_FILE
 
-_client = Groq(api_key=GROQ_API_KEY)
+def get_client():
+    """
+    Get the Groq client. This is wrapped in a function to allow for
+    easier testing and to handle cases where the API key might be missing
+    at module load time.
+    """
+    return Groq(api_key=GROQ_API_KEY)
 
 
 def load_labeled_examples() -> list[dict]:
@@ -85,7 +91,8 @@ def classify_episode(title: str, description: str, labeled_examples: list[dict])
     prompt = build_few_shot_prompt(labeled_examples, title, description)
 
     try:
-        completion = _client.chat.completions.create(
+        client = get_client()
+        completion = client.chat.completions.create(
             model=LLM_MODEL, 
             messages=[
                 {
@@ -100,7 +107,8 @@ def classify_episode(title: str, description: str, labeled_examples: list[dict])
         response_text = completion.choices[0].message.content
 
         # Simple parsing for Label and Reasoning
-        label_match = re.search(r"Label:\s*(\w+)", response_text, re.IGNORECASE)
+        # Use \w+ for simple labels, but be resilient to punctuation/quotes
+        label_match = re.search(r"Label:\s*['\"]?(\w+)['\"]?[\s!.]*", response_text, re.IGNORECASE)
         reasoning_match = re.search(r"Reasoning:\s*(.*)", response_text, re.IGNORECASE | re.DOTALL)
 
         label = label_match.group(1).lower().strip() if label_match else "unknown"
