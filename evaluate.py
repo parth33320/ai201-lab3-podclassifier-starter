@@ -25,7 +25,7 @@ def run_evaluation() -> dict:
     results = []
     for episode in test_episodes:
         print(f"  Classifying: {episode['title'][:60]}...")
-        prediction = classify_episode(episode["description"], labeled_examples)
+        prediction = classify_episode(episode["title"], episode["description"], labeled_examples)
         results.append({
             "id": episode["id"],
             "title": episode["title"],
