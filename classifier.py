@@ -54,12 +54,13 @@ def build_few_shot_prompt(labeled_examples: list[dict], title: str, description:
 """
 
     prompt_parts = [
-        "You are a podcast episode classifier. Your task is to classify a podcast episode into one of these four categories based on its title and description:",
+        "You are a podcast episode classifier. Your task is to classify a podcast episode into one of these four categories.",
+        "If the provided description is nonsensical or does not fit any of these categories, you must return 'unknown' as the label.",
         taxonomy.strip(),
         "\nReturn your answer in the following format:",
         "Label: [label]",
         "Reasoning: [brief reasoning]",
-        "\nThe label must be exactly one of: interview, solo, panel, narrative.\n",
+        "\nThe label must be exactly one of: interview, solo, panel, narrative, or unknown.\n",
     ]
 
     if labeled_examples:
@@ -85,12 +86,15 @@ def classify_episode(title: str, description: str, labeled_examples: list[dict])
 
     try:
         completion = _client.chat.completions.create(
-            model=LLM_MODEL,
+            model=LLM_MODEL, 
             messages=[
-                {"role": "system", "content": "You are a helpful assistant that classifies podcast episodes."},
+                {
+                    "role": "system", 
+                    "content": "You are a classifier. Return 'unknown' if the content is not a podcast description."
+                },
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=300,
+            max_tokens=300, 
             temperature=0,
         )
         response_text = completion.choices[0].message.content
