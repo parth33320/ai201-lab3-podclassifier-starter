@@ -74,7 +74,7 @@ def _result_html(label: str, reasoning: str) -> str:
 # Core UI callbacks
 # ---------------------------------------------------------------------------
 
-def classify_description(description: str) -> str:
+def classify_description(title: str, description: str) -> str:
     if not description.strip():
         return "<p style='color:#9ca3af;font-style:italic;'>Paste an episode description above and click Classify.</p>"
 
@@ -89,7 +89,7 @@ def classify_description(description: str) -> str:
             "</div>"
         )
 
-    result = classify_episode(description, labeled_examples)
+    result = classify_episode(title, description, labeled_examples)
     return _result_html(result["label"], result["reasoning"])
 
 
@@ -186,7 +186,7 @@ Before the classifier works, you need to complete the milestones:
 
             classify_btn.click(
                 fn=classify_description,
-                inputs=[description_box],
+                inputs=[title_box, description_box],
                 outputs=[result_html],
             )
 
