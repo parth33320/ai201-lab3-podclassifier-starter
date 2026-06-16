@@ -1,5 +1,5 @@
 import json
-import os
+from pathlib import Path
 from groq import Groq
 from config import GROQ_API_KEY, LLM_MODEL, VALID_LABELS, DATA_PATH, TRAIN_FILE, LABELS_FILE
 
@@ -20,8 +20,9 @@ def load_labeled_examples() -> list[dict]:
     Only returns episodes where the label is a valid, non-null string.
     Episodes with null labels are silently skipped.
     """
-    train_path = os.path.join(DATA_PATH, TRAIN_FILE)
-    labels_path = os.path.join(DATA_PATH, LABELS_FILE)
+    data_dir = Path(DATA_PATH)
+    train_path = data_dir / TRAIN_FILE
+    labels_path = data_dir / LABELS_FILE
 
     with open(train_path, encoding="utf-8") as f:
         episodes = {ep["id"]: ep for ep in json.load(f)}
@@ -33,6 +34,8 @@ def load_labeled_examples() -> list[dict]:
     for ep_id, ep in episodes.items():
         label = labels.get(ep_id)
         if label in VALID_LABELS:
+            # We ensure the returned dict contains at least the 5 required fields.
+            # Extra fields from 'ep' are also preserved as per requirements.
             labeled.append({**ep, "label": label})
 
     return labeled
