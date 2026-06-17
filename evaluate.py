@@ -50,21 +50,19 @@ def run_evaluation() -> dict:
 def compute_accuracy(predictions: list[str], ground_truth: list[str]) -> float:
     """
     Compute overall classification accuracy.
-
-    Accuracy = number of correct predictions / total predictions.
-    A prediction is correct when it exactly matches the ground truth label.
+    Handles empty lists (0.0) and mismatched lengths (ValueError).
     """
     if len(predictions) != len(ground_truth):
-        raise ValueError("predictions and ground_truth must have the same length")
+        raise ValueError("mismatched length")
 
     if not predictions:
         return 0.0
 
-    for label in ground_truth:
-        if label not in VALID_LABELS:
-            raise ValueError(f"Invalid ground truth label found: {label}")
+    correct = 0
+    for p, g in zip(predictions, ground_truth):
+        if p == g:
+            correct += 1
 
-    correct = sum(1 for p, g in zip(predictions, ground_truth) if p == g and p in VALID_LABELS)
     return correct / len(predictions)
 
 
@@ -72,33 +70,22 @@ def compute_per_class_accuracy(
     predictions: list[str], ground_truth: list[str]
 ) -> dict[str, dict]:
     """
-    Compute accuracy broken down by each label class.
-
-    For each label in VALID_LABELS, compute:
-      - "correct"  : number of episodes with this ground-truth label predicted correctly
-      - "total"    : number of episodes with this ground-truth label
-      - "accuracy" : correct / total (0.0 if total is 0)
-
-    Return a dict keyed by label. Example:
-      {
-        "interview": {"correct": 4, "total": 5, "accuracy": 0.8},
-        "solo":      {"correct": 5, "total": 5, "accuracy": 1.0},
-        ...
-      }
+    Compute accuracy broken down by each label class in VALID_LABELS.
+    Initializes all VALID_LABELS to 0.
     """
     if len(predictions) != len(ground_truth):
-        raise ValueError("predictions and ground_truth must have the same length")
+        raise ValueError("mismatched length")
 
-    for label in ground_truth:
-        if label not in VALID_LABELS:
-            raise ValueError(f"Invalid ground truth label found: {label}")
-
-    stats = {label: {"correct": 0, "total": 0, "accuracy": 0.0} for label in VALID_LABELS}
+    # Initialize all valid labels with zero counts
+    stats = {}
+    for label in VALID_LABELS:
+        stats[label] = {"correct": 0, "total": 0, "accuracy": 0.0}
 
     for p, g in zip(predictions, ground_truth):
-        stats[g]["total"] += 1
-        if p == g and p in VALID_LABELS:
-            stats[g]["correct"] += 1
+        if g in stats:
+            stats[g]["total"] += 1
+            if p == g:
+                stats[g]["correct"] += 1
 
     for label in stats:
         if stats[label]["total"] > 0:
@@ -138,3 +125,37 @@ def format_evaluation_report(eval_results: dict) -> str:
         lines.append("\n**No misclassifications — perfect score!**")
 
     return "\n".join(lines)
+
+
+def test_evaluation_math():
+    """
+    Test the evaluation functions with various cases.
+    """
+    # 1. Standard 2/4 case
+    predictions = ["interview", "solo", "unknown", "panel"]
+    ground_truth = ["interview", "solo", "narrative", "narrative"]
+    accuracy = compute_accuracy(predictions, ground_truth)
+    assert accuracy == 0.5, f"Expected 0.5 accuracy, got {accuracy}"
+
+    per_class = compute_per_class_accuracy(predictions, ground_truth)
+    assert per_class["interview"]["correct"] == 1
+    assert per_class["interview"]["total"] == 1
+    assert per_class["narrative"]["correct"] == 0
+    assert per_class["narrative"]["total"] == 2
+    assert per_class["panel"]["total"] == 0  # Should be 0 but present
+
+    # 2. Empty list case
+    assert compute_accuracy([], []) == 0.0
+
+    # 3. Mismatched length case
+    try:
+        compute_accuracy(["solo"], ["solo", "interview"])
+        assert False, "Should have raised ValueError for mismatched lengths"
+    except ValueError:
+        pass
+
+    print("✓ test_evaluation_math passed!")
+
+
+if __name__ == "__main__":
+    test_evaluation_math()
