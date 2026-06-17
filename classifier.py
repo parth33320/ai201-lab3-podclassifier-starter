@@ -71,7 +71,18 @@ def build_few_shot_prompt(labeled_examples: list[dict], title: str, description:
 
     if labeled_examples:
         prompt_parts.append("Here are some examples:")
+        # We pick examples that represent all labels to provide a balanced context
+        # while keeping the token count low.
+        examples_to_show = []
+        labels_seen = set()
         for ex in labeled_examples:
+            if ex['label'] not in labels_seen:
+                examples_to_show.append(ex)
+                labels_seen.add(ex['label'])
+            if len(examples_to_show) == 4:
+                break
+
+        for ex in examples_to_show:
             prompt_parts.append(f"Title: {ex['title']}")
             prompt_parts.append(f"Description: {ex['description']}")
             prompt_parts.append(f"Label: {ex['label']}\n")

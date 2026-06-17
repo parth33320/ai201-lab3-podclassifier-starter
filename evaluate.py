@@ -22,10 +22,12 @@ def run_evaluation() -> dict:
     with open(test_path, encoding="utf-8") as f:
         test_episodes = json.load(f)
 
+    import time
     results = []
     for episode in test_episodes:
         print(f"  Classifying: {episode['title'][:60]}...")
         prediction = classify_episode(episode["title"], episode["description"], labeled_examples)
+        time.sleep(1) # Rate limit mitigation
         results.append({
             "id": episode["id"],
             "title": episode["title"],
@@ -158,4 +160,10 @@ def test_evaluation_math():
 
 
 if __name__ == "__main__":
+    print("Running math tests...")
     test_evaluation_math()
+
+    print("\nRunning full evaluation on test set...")
+    eval_results = run_evaluation()
+    report = format_evaluation_report(eval_results)
+    print("\n" + report)
