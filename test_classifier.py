@@ -53,3 +53,17 @@ def test_classify_episode_invalid_label(mock_groq_client):
 
     result = classify_episode("Title", "Description", [])
     assert result["label"] == "unknown"
+
+def test_classify_episode_real_api():
+    """Verify that the Groq API is working with a real call."""
+    title = "The Daily"
+    description = "Michael Barbaro hosts a deep dive into the day's news."
+    # We use empty labeled_examples to keep it simple
+    result = classify_episode(title, description, [])
+
+    # We don't strictly check the label since it's zero-shot here,
+    # but it should not crash and should return one of the VALID_LABELS or unknown.
+    assert "label" in result
+    assert "reasoning" in result
+    assert result["label"] in ["interview", "solo", "panel", "narrative", "unknown"]
+    print(f"\nReal API Result: {result}")
