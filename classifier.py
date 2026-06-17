@@ -61,7 +61,7 @@ def build_few_shot_prompt(labeled_examples: list[dict], title: str, description:
 
     prompt_parts = [
         "You are a podcast episode classifier. Your task is to classify a podcast episode into one of these four categories.",
-        "If the provided description is nonsensical or does not fit any of these categories, you must return 'unknown' as the label.",
+        "If the input description is nonsensical or not a podcast description, return unknown.",
         taxonomy.strip(),
         "\nReturn your answer in the following format:",
         "Label: [label]",
@@ -97,7 +97,7 @@ def classify_episode(title: str, description: str, labeled_examples: list[dict])
             messages=[
                 {
                     "role": "system", 
-                    "content": "You are a classifier. Return 'unknown' if the content is not a podcast description."
+                    "content": "If the input description is nonsensical or not a podcast description, return unknown."
                 },
                 {"role": "user", "content": prompt}
             ],
@@ -106,16 +106,18 @@ def classify_episode(title: str, description: str, labeled_examples: list[dict])
         )
         response_text = completion.choices[0].message.content
 
-        # Simple parsing for Label and Reasoning
-        # Use \w+ for simple labels, but be resilient to punctuation/quotes
-        label_match = re.search(r"Label:\s*['\"]?(\w+)['\"]?[\s!.]*", response_text, re.IGNORECASE)
+        # Hunter parser: iterate through VALID_LABELS and check if the label exists as a substring
+        # in the lowercase response_text.
+        normalized_response = response_text.lower()
+        label = "unknown"
+        for candidate in VALID_LABELS:
+            if candidate in normalized_response:
+                label = candidate
+                break
+
+        # Simple parsing for Reasoning
         reasoning_match = re.search(r"Reasoning:\s*(.*)", response_text, re.IGNORECASE | re.DOTALL)
-
-        label = label_match.group(1).lower().strip() if label_match else "unknown"
         reasoning = reasoning_match.group(1).strip() if reasoning_match else response_text.strip()
-
-        if label not in VALID_LABELS:
-            label = "unknown"
 
         return {
             "label": label,
